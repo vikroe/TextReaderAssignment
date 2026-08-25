@@ -1,3 +1,4 @@
 <Solution>
-  <Project Path="TextReader/TextReader.csproj" />
+  <Project Path="TextReader.Core/TextReader.Core.csproj" />
+  <Project Path="TextReader/TextReader.App.csproj" />
 </Solution>

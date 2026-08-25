@@ -12,4 +12,8 @@
     <Page Include="App.xaml" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\TextReader.Core\TextReader.Core.csproj" />
+  </ItemGroup>
+
 </Project>
