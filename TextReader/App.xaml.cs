@@ -2,7 +2,7 @@
 using System.Data;
 using System.Windows;
 
-namespace TextReader
+namespace TextReader.App
 {
     /// <summary>
     /// Interaction logic for App.xaml

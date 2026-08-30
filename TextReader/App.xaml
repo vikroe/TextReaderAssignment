@@ -1,7 +1,7 @@
-﻿<Application x:Class="TextReader.App"
+﻿<Application x:Class="TextReader.App.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:TextReader"
+             xmlns:local="clr-namespace:TextReader.App"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
          

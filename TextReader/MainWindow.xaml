@@ -1,12 +1,26 @@
-﻿<Window x:Class="TextReader.MainWindow"
+﻿<Window x:Class="TextReader.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:TextReader"
+        xmlns:local="clr-namespace:TextReader.App"
+        xmlns:userControls="clr-namespace:TextReader.App.View.UserControls"
+        xmlns:view="clr-namespace:TextReader.App.View"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto" />
+            <RowDefinition />
+        </Grid.RowDefinitions>
 
+        <userControls:MenuBar />
+        <ScrollViewer 
+            Grid.Row="1"
+            CanContentScroll="True"
+            HorizontalScrollBarVisibility="Auto"
+            VerticalScrollBarVisibility="Visible">
+            <view:TextView  />
+        </ScrollViewer>
     </Grid>
 </Window>
