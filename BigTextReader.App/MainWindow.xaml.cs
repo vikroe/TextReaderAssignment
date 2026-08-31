@@ -1,7 +1,7 @@
 ﻿using System.Windows;
-using TextReader.App.ViewModel;
+using BigTextReader.App.ViewModel;
 
-namespace TextReader.App
+namespace BigTextReader.App
 {
     public partial class MainWindow : Window
     {

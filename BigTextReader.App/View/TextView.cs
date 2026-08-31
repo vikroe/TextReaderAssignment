@@ -3,10 +3,10 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Globalization;
-using TextReader.Core.Sources;
+using BigTextReader.Core.Sources;
 using System.Windows.Input;
 
-namespace TextReader.App.View
+namespace BigTextReader.App.View
 {
     internal class TextView : FrameworkElement, IScrollInfo
     {

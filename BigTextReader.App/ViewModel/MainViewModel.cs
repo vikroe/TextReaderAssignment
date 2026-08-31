@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using TextReader.Core.Sources;
+using BigTextReader.Core.Sources;
 
-namespace TextReader.App.ViewModel
+namespace BigTextReader.App.ViewModel
 {
     public sealed class MainViewModel : IDisposable, INotifyPropertyChanged
     {

@@ -1,6 +1,6 @@
 ﻿using System.Windows.Input;
 
-namespace TextReader.App.ViewModel
+namespace BigTextReader.App.ViewModel
 {
     public class RelayCommand : ICommand
     {

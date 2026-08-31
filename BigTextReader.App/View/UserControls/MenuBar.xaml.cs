@@ -1,6 +1,6 @@
 ﻿using System.Windows.Controls;
 
-namespace TextReader.App.View.UserControls
+namespace BigTextReader.App.View.UserControls
 {
     public partial class MenuBar : UserControl
     {

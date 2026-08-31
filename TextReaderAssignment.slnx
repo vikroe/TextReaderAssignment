@@ -1,4 +1,4 @@
 <Solution>
-  <Project Path="TextReader.Core/TextReader.Core.csproj" />
-  <Project Path="TextReader/TextReader.App.csproj" />
+  <Project Path="BigTextReader.Core/BigTextReader.Core.csproj" />
+  <Project Path="BigTextReader.App/BigTextReader.App.csproj" />
 </Solution>

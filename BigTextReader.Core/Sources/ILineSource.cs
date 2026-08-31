@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace TextReader.Core.Sources
+namespace BigTextReader.Core.Sources
 {
     public interface ILineSource
     {
