@@ -4,6 +4,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Globalization;
 using TextReader.Core.Sources;
+using System.Windows.Input;
 
 namespace TextReader.App.View
 {
@@ -215,7 +216,7 @@ namespace TextReader.App.View
         protected override void OnRender(DrawingContext ctx) 
         {
             long start = (long)(VerticalOffset / LineSize);
-            int visible = (int)((VerticalOffset + ViewportHeight) / LineSize - start);
+            int visible = (int)((VerticalOffset + ViewportHeight) / LineSize - start + 1);
 
             if (Source == null)
                 return;
