@@ -1,21 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Text;
 using TextReader.Core.Sources;
 
 namespace TextReader.App.ViewModel
 {
-    public sealed class MainViewModel : IDisposable
+    public sealed class MainViewModel : IDisposable, INotifyPropertyChanged
     {
-        private ILineSource? _source; 
+        public MainViewModel()
+        {
+            SelectSynthSourceCommand = new RelayCommand(
+                execute => SelectSyntheticSource(),
+                canExecute => { return true; });
+        }
 
+        private ILineSource? _source; 
         public ILineSource? Source
         {
             get => _source;
             private set => SetField(ref _source, value);
         }
+
+        public RelayCommand SelectSynthSourceCommand { get; }
 
         public void Dispose()
         {
@@ -35,6 +40,11 @@ namespace TextReader.App.ViewModel
             field = value;
             OnPropertyChanged(name);
             return true;
+        }
+
+        public void SelectSyntheticSource()
+        {
+            Source = new SyntheticSource();
         }
     }
 }

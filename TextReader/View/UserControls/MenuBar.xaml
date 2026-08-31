@@ -12,7 +12,7 @@
         </Grid.RowDefinitions>
         <Menu>
             <MenuItem Header="File" FontSize="16">
-                <MenuItem Header="Exit" FontSize="16"/>
+                <MenuItem Header="Synthetic Source" FontSize="16" Command="{Binding SelectSynthSourceCommand}"/>
             </MenuItem>
         </Menu>
 

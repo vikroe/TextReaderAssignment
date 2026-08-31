@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Globalization;
+using TextReader.Core.Sources;
 
 namespace TextReader.App.View
 {
@@ -16,8 +17,28 @@ namespace TextReader.App.View
             );
         }
 
+
+        public ILineSource Source
+        {
+            get => (ILineSource)GetValue(SourceProperty);
+            set => SetValue(SourceProperty, value);
+        }
+        public static readonly DependencyProperty SourceProperty = DependencyProperty.Register(
+            "Source",
+            typeof(ILineSource),
+            typeof(TextView),
+            new FrameworkPropertyMetadata(
+                null,
+                FrameworkPropertyMetadataOptions.AffectsRender,
+                (d, e) =>
+                {
+                    ((TextView)d).lineCount = ((TextView)d).Source.LineCount;
+                    ((TextView)d).ScrollOwner?.InvalidateScrollInfo();
+                }));
+
         private const double LineSize = 16;
         private const double WheelSize = 3 * LineSize;
+        private long lineCount = 0;
 
         private bool canHorizontallyScroll;
         private bool canVerticallyScroll;
@@ -52,7 +73,7 @@ namespace TextReader.App.View
             set => scrollOwner = value;
         }
 
-        public double ExtentHeight => 1000 * LineSize;
+        public double ExtentHeight => lineCount * LineSize;
         public double ExtentWidth => 1680;
         public double HorizontalOffset { get => offset.X; }
         public double VerticalOffset { get => offset.Y; }
@@ -193,20 +214,23 @@ namespace TextReader.App.View
 
         protected override void OnRender(DrawingContext ctx) 
         {
-            double start = (long)(VerticalOffset / LineSize);
-            double visible = (int)((VerticalOffset + ViewportHeight) / LineSize - start);
+            long start = (long)(VerticalOffset / LineSize);
+            int visible = (int)((VerticalOffset + ViewportHeight) / LineSize - start);
+
+            if (Source == null)
+                return;
 
             for (int i = 0; i < visible; i++)
             {
-                FormattedText line = new FormattedText(
-                    "hello hello + " + (i + start),
+                FormattedText line = new(
+                    Source.GetLine(start + i),
                     CultureInfo.CurrentCulture,
                     FlowDirection.LeftToRight,
                     _typeface,
                     _fontSize,
                     _foreground
                 );
-                ctx.DrawText(line, new Point(0, i * LineSize));
+                ctx.DrawText(line, new Point(-HorizontalOffset, i * LineSize));
             }
         }
     }
