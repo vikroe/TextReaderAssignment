@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Diagnostics.Eventing.Reader;
 using System.Runtime.CompilerServices;
 using BigTextReader.Core.Sources;
 
@@ -17,14 +18,29 @@ namespace BigTextReader.App.ViewModel
         public ILineSource? Source
         {
             get => _source;
-            private set => SetField(ref _source, value);
+            private set => SetSource(value);
+        }
+
+        private void SetSource(ILineSource? next)
+        {
+            var old = Source;
+            SetField(ref _source, next, nameof(Source));
+            LineCount = next?.LineCount ?? 0;
+            old?.Dispose();
+        }
+
+        private long _lineCount;
+        public long LineCount
+        {
+            get => _lineCount;
+            private set => SetField(ref _lineCount, value);
         }
 
         public RelayCommand SelectSynthSourceCommand { get; }
 
         public void Dispose()
         {
-            throw new NotImplementedException();
+            Source?.Dispose();
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

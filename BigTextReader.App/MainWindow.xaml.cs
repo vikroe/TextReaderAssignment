@@ -8,7 +8,7 @@ namespace BigTextReader.App
         public MainWindow()
         {
             InitializeComponent();
-            MainViewModel vm = new MainViewModel();
+            MainViewModel vm = new();
             DataContext = vm;
         }
     }

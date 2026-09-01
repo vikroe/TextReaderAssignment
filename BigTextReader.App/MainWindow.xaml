@@ -20,7 +20,7 @@
             CanContentScroll="True"
             HorizontalScrollBarVisibility="Auto"
             VerticalScrollBarVisibility="Visible">
-            <view:TextView Source="{Binding Source}" />
+            <view:TextView Source="{Binding Source}" LineCount="{Binding LineCount}" />
         </ScrollViewer>
     </Grid>
 </Window>

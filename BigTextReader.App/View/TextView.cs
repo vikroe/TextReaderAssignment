@@ -25,21 +25,25 @@ namespace BigTextReader.App.View
             set => SetValue(SourceProperty, value);
         }
         public static readonly DependencyProperty SourceProperty = DependencyProperty.Register(
-            "Source",
+            nameof(Source),
             typeof(ILineSource),
             typeof(TextView),
-            new FrameworkPropertyMetadata(
-                null,
-                FrameworkPropertyMetadataOptions.AffectsRender,
-                (d, e) =>
-                {
-                    ((TextView)d).lineCount = ((TextView)d).Source.LineCount;
-                    ((TextView)d).ScrollOwner?.InvalidateScrollInfo();
-                }));
+            new FrameworkPropertyMetadata(null, OnSourceChanged));
+
+        public long LineCount
+        {
+            get { return (long)GetValue(LineCountProperty); }
+            set { SetValue(LineCountProperty, value); }
+        }
+        public static readonly DependencyProperty LineCountProperty =
+            DependencyProperty.Register(
+                nameof(LineCount),
+                typeof(long),
+                typeof(TextView),
+                new PropertyMetadata((long)0, OnLineCountChanged));
 
         private const double LineSize = 16;
         private const double WheelSize = 3 * LineSize;
-        private long lineCount = 0;
 
         private bool canHorizontallyScroll;
         private bool canVerticallyScroll;
@@ -74,7 +78,7 @@ namespace BigTextReader.App.View
             set => scrollOwner = value;
         }
 
-        public double ExtentHeight => lineCount * LineSize;
+        public double ExtentHeight => LineCount * LineSize;
         public double ExtentWidth => 1680;
         public double HorizontalOffset { get => offset.X; }
         public double VerticalOffset { get => offset.Y; }
@@ -233,6 +237,22 @@ namespace BigTextReader.App.View
                 );
                 ctx.DrawText(line, new Point(-HorizontalOffset, i * LineSize));
             }
+        }
+
+        private static void OnSourceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var textView = (TextView)d;
+            textView.offset.Y = 0;
+            textView.InvalidateMeasure();
+            textView.InvalidateVisual();
+            textView.ScrollOwner?.InvalidateScrollInfo();
+        }
+
+        private static void OnLineCountChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var textView = (TextView)d;
+            textView.InvalidateMeasure();
+            textView.ScrollOwner?.InvalidateScrollInfo();
         }
     }
 }

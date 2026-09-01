@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace BigTextReader.Core.Sources
+﻿namespace BigTextReader.Core.Sources
 {
-    public interface ILineSource
+    public interface ILineSource: IDisposable
     {
         long LineCount { get; }
         string GetLine(long index);
