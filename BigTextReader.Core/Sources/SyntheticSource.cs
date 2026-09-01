@@ -9,9 +9,6 @@
             return $"Line {index}: " + new string('x', (int)(index % 120));
         }
 
-        public void Dispose()
-        {
-            GC.SuppressFinalize(this);
-        }
+        public void Dispose(){}
     }
 }

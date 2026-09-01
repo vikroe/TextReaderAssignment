@@ -243,6 +243,7 @@ namespace BigTextReader.App.View
         {
             var textView = (TextView)d;
             textView.offset.Y = 0;
+            textView.offset.X = 0;
             textView.InvalidateMeasure();
             textView.InvalidateVisual();
             textView.ScrollOwner?.InvalidateScrollInfo();
@@ -251,7 +252,7 @@ namespace BigTextReader.App.View
         private static void OnLineCountChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var textView = (TextView)d;
-            textView.InvalidateMeasure();
+            textView.InvalidateVisual();
             textView.ScrollOwner?.InvalidateScrollInfo();
         }
     }
