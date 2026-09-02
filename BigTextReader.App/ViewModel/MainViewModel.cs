@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel;
-using System.Diagnostics.Eventing.Reader;
 using System.Runtime.CompilerServices;
 using BigTextReader.Core.Sources;
 

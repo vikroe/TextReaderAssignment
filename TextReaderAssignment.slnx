@@ -1,4 +1,5 @@
 <Solution>
-  <Project Path="BigTextReader.Core/BigTextReader.Core.csproj" />
   <Project Path="BigTextReader.App/BigTextReader.App.csproj" />
+  <Project Path="BigTextReader.Core/BigTextReader.Core.csproj" />
+  <Project Path="Tests/Tests.csproj" Id="47bcb111-26b0-47c0-93f6-d68fee9fd62e" />
 </Solution>
