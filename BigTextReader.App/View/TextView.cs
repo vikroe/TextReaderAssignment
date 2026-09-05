@@ -4,6 +4,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Globalization;
 using BigTextReader.Core.Sources;
+using BigTextReader.Core;
 
 namespace BigTextReader.App.View
 {
@@ -252,20 +253,21 @@ namespace BigTextReader.App.View
 
             for (int i = 0; i < visible; i++)
             {
-                if (i + start >= LineCount)
+                if (i + start > LineCount)
                 {
                     break;
                 }
 
+                var text = Source.GetLine(start + i);
+                if (text.Length > Globals.MaxRenderedLineLength) text = text[..Globals.MaxRenderedLineLength];
                 FormattedText line = new(
-                    Source.GetLine(start + i),
+                    text,
                     CultureInfo.CurrentCulture,
                     FlowDirection.LeftToRight,
                     _typeface,
                     FontSize,
                     _foreground,
-                    _pixelsPerDip
-                )
+                    _pixelsPerDip)
                 {
                     Trimming = TextTrimming.None,
                     MaxLineCount = 1,
