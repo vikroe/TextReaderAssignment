@@ -1,6 +1,7 @@
 ﻿using Microsoft.Win32.SafeHandles;
 using System.Buffers;
 using System.Diagnostics;
+using BigTextReader.Core.Text;
 
 namespace BigTextReader.Core.Indexing
 {
@@ -10,16 +11,15 @@ namespace BigTextReader.Core.Indexing
             SafeFileHandle handle,
             long fileLength,
             SparseLineIndex index,
+            EncodingDetector.BomInfo bomInfo,
             IProgress<IndexingProgress>? progress,
             CancellationToken ct = default)
         {
-            // TODO: Add BOM detection and start after it.
-
             byte[] buffer = ArrayPool<byte>.Shared.Rent(Globals.ReadBufferSize);
 
             try
             {
-                long filePos = 0, lineNo = 0, lineStart = 0;
+                long filePos = bomInfo.Length, lineNo = 0, lineStart = bomInfo.Length;
                 index.AddCheckpoint(filePos);
 
                 var currentTimestamp = Stopwatch.GetTimestamp();

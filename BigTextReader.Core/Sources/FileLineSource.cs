@@ -1,9 +1,6 @@
 ﻿using BigTextReader.Core.Indexing;
+using BigTextReader.Core.Text;
 using Microsoft.Win32.SafeHandles;
-using System;
-using System.Collections.Generic;
-using System.Reflection.Metadata;
-using System.Text;
 
 namespace BigTextReader.Core.Sources
 {
@@ -13,6 +10,7 @@ namespace BigTextReader.Core.Sources
         private readonly SparseLineIndex _index = new();
         private readonly CancellationTokenSource _cts = new();
         private readonly long _fileLength;
+        private readonly EncodingDetector.BomInfo _bom = new();
         private int _disposed;
 
         public FileLineSource (string path)
@@ -24,16 +22,36 @@ namespace BigTextReader.Core.Sources
                 FileShare.Read,
                 FileOptions.RandomAccess);
             _fileLength = RandomAccess.GetLength(_handle);
+
+            Span<byte> head = stackalloc byte[4];
+            var read = RandomAccess.Read(_handle, head, 0);
+            _bom = EncodingDetector.Detect(head[..read]);
+
+            if (!_bom.Supported)
+            {
+                throw new NotSupportedException("Unsupported BOM - only UTF-8 is supported");
+            }
         }
 
         public long LineCount => _index.Count;
 
-        public Task<long> IndexAsync(IProgress<IndexingProgress>? progress, CancellationToken ct = default)
+        public Task<long> IndexAsync(
+            IProgress<IndexingProgress>? progress,
+            CancellationToken ct = default)
         {
             var linked = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, ct);
             return Task.Run(() =>
             {
-                try { return LineIndexer.Scan(_handle, _fileLength, _index, progress, linked.Token); }
+                try 
+                {
+                    return LineIndexer.Scan(
+                        _handle,
+                        _fileLength,
+                        _index,
+                        _bom,
+                        progress,
+                        linked.Token);
+                }
                 finally { linked.Dispose(); }
             }, linked.Token);
         }
