@@ -22,13 +22,14 @@ namespace BigTextReader.Core.Indexing
                 long filePos = bomInfo.Length, lineNo = 0, lineStart = bomInfo.Length, maxLineBytes = 0;
                 index.AddCheckpoint(filePos);
 
+
                 var currentTimestamp = Stopwatch.GetTimestamp();
                 while (filePos < fileLength)
                 {
                     ct.ThrowIfCancellationRequested();
 
-                    int read = RandomAccess.Read(handle, buffer, filePos);
-                    if (read == 0) break;
+                    try { read = RandomAccess.Read(handle, buffer, filePos); }
+                    catch (ObjectDisposedException) { throw new OperationCanceledException(ct); }
 
                     var span = buffer.AsSpan(0, read);
                     int scannedOffset = 0;
@@ -38,11 +39,8 @@ namespace BigTextReader.Core.Indexing
                         int newLine = span[scannedOffset..].IndexOf((byte)'\n');
                         if (newLine < 0) break;
 
-                        if (maxLineBytes < newLine - scannedOffset + 1)
-                        {
-                            maxLineBytes = newLine - scannedOffset + 1;
-                        }
-
+                        long lineEnd = filePos + scannedOffset + newLine;
+                        if (lineEnd - lineStart > maxLineBytes) maxLineBytes = lineEnd - lineStart;
                         scannedOffset += newLine + 1;
                         lineNo++;
                         lineStart = filePos + scannedOffset;
@@ -61,7 +59,11 @@ namespace BigTextReader.Core.Indexing
                     }
                 }
 
-                if (lineStart < filePos) lineNo++;
+                if (lineStart < filePos)
+                {
+                    lineNo++;
+                    if (filePos - lineStart > maxLineBytes) maxLineBytes = filePos - lineStart;
+                }
 
                 index.SetCount(lineNo);
                 index.SetMaxLineBytes(maxLineBytes);
