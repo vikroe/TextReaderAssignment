@@ -90,7 +90,7 @@ namespace BigTextReader.App.View
         }
 
         public double ExtentHeight => LineCount * _lineHeight;
-        public double ExtentWidth => _maxMeasuredWidth;
+        public double ExtentWidth => MaxLineBytes * _charWidth;
         private double WheelSize => 3 * _lineHeight;
         public double HorizontalOffset { get => _offset.X; }
         public double VerticalOffset { get => _offset.Y; }
@@ -267,9 +267,17 @@ namespace BigTextReader.App.View
             for (int i = 0; i < visible && i + start < LineCount; i++)
             {
                 var text = Source.GetLine(start + i);
-                if (text.Length > Globals.MaxRenderedLineLength) text = text[..Globals.MaxRenderedLineLength];
+
+                int firstChar = (int)(HorizontalOffset / _charWidth);
+                if (firstChar >= text.Length) continue;
+                if (char.IsLowSurrogate(text[firstChar])) firstChar--;
+
+                int count = Math.Min((int)(ViewportWidth / _charWidth) + 2, text.Length - firstChar);
+                double x = firstChar * _charWidth - HorizontalOffset;
+                double y = i * _lineHeight - firstLineOffset;
+
                 FormattedText line = new(
-                    text,
+                    text.Substring(firstChar, count),
                     CultureInfo.CurrentCulture,
                     FlowDirection.LeftToRight,
                     _typeface,
@@ -280,8 +288,7 @@ namespace BigTextReader.App.View
                     Trimming = TextTrimming.None,
                     MaxLineCount = 1,
                 };
-
-                ctx.DrawText(line, new Point(-HorizontalOffset, i * _lineHeight - firstLineOffset));
+                ctx.DrawText(line, new Point(x, y));
             }
         }
 
