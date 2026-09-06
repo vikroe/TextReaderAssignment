@@ -5,9 +5,9 @@ using BigTextReader.Core.Text;
 
 namespace BigTextReader.Core.Indexing
 {
-    public static class LineIndexer
+    internal static class LineIndexer
     {
-        public static long Scan(
+        internal static long Scan(
             SafeFileHandle handle,
             long fileLength,
             SparseLineIndex index,
@@ -19,7 +19,7 @@ namespace BigTextReader.Core.Indexing
 
             try
             {
-                long filePos = bomInfo.Length, lineNo = 0, lineStart = bomInfo.Length;
+                long filePos = bomInfo.Length, lineNo = 0, lineStart = bomInfo.Length, maxLineBytes = 0;
                 index.AddCheckpoint(filePos);
 
                 var currentTimestamp = Stopwatch.GetTimestamp();
@@ -38,6 +38,11 @@ namespace BigTextReader.Core.Indexing
                         int newLine = span[scannedOffset..].IndexOf((byte)'\n');
                         if (newLine < 0) break;
 
+                        if (maxLineBytes < newLine - scannedOffset + 1)
+                        {
+                            maxLineBytes = newLine - scannedOffset + 1;
+                        }
+
                         scannedOffset += newLine + 1;
                         lineNo++;
                         lineStart = filePos + scannedOffset;
@@ -50,7 +55,8 @@ namespace BigTextReader.Core.Indexing
                     if (Stopwatch.GetElapsedTime(currentTimestamp).TotalMilliseconds > Globals.ProgressIntervalMs)
                     {
                         index.SetCount(lineNo);
-                        progress?.Report(new(lineNo, filePos, fileLength));
+                        index.SetMaxLineBytes(maxLineBytes);
+                        progress?.Report(new(lineNo, maxLineBytes, filePos, fileLength));
                         currentTimestamp = Stopwatch.GetTimestamp();
                     }
                 }
@@ -58,7 +64,8 @@ namespace BigTextReader.Core.Indexing
                 if (lineStart < filePos) lineNo++;
 
                 index.SetCount(lineNo);
-                progress?.Report(new(lineNo, fileLength, fileLength));
+                index.SetMaxLineBytes(maxLineBytes);
+                progress?.Report(new(lineNo, maxLineBytes, fileLength, fileLength));
                 return lineNo;
             }
             finally

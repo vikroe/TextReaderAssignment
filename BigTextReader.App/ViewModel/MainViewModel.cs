@@ -25,6 +25,7 @@ namespace BigTextReader.App.ViewModel
             var old = Source;
             SetField(ref _source, next, nameof(Source));
             LineCount = next?.LineCount ?? 0;
+            MaxLineBytes = next?.MaxLineBytes ?? 0;
             old?.Dispose();
         }
 
@@ -34,6 +35,15 @@ namespace BigTextReader.App.ViewModel
             get => _lineCount;
             private set => SetField(ref _lineCount, value);
         }
+
+        private long _maxLineBytes;
+
+        public long MaxLineBytes
+        {
+            get => _maxLineBytes;
+            private set => SetField(ref _maxLineBytes, value);
+        }
+
 
         public RelayCommand SelectSynthSourceCommand { get; }
 

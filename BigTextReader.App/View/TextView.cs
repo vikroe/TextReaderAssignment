@@ -37,9 +37,23 @@ namespace BigTextReader.App.View
                 nameof(LineCount),
                 typeof(long),
                 typeof(TextView),
-                new PropertyMetadata((long)0, OnLineCountChanged));
-        private const double FontSize = 14;
+                new PropertyMetadata((long)0, OnScrollInfoChanged));
 
+        public long MaxLineBytes
+        {
+            get { return (long)GetValue(MaxLineBytesProperty); }
+            set { SetValue(MaxLineBytesProperty, value); }
+        }
+        public static readonly DependencyProperty MaxLineBytesProperty =
+            DependencyProperty.Register(
+                nameof(MaxLineBytes),
+                typeof(long),
+                typeof(TextView),
+                new PropertyMetadata((long)0, OnScrollInfoChanged));
+
+
+
+        private const double FontSize = 14;
         private bool _canHorizontallyScroll;
         private bool _canVerticallyScroll;
         private ScrollViewer? _scrollOwner;
@@ -76,7 +90,6 @@ namespace BigTextReader.App.View
         }
 
         public double ExtentHeight => LineCount * _lineHeight;
-        private double _maxMeasuredWidth;
         public double ExtentWidth => _maxMeasuredWidth;
         private double WheelSize => 3 * _lineHeight;
         public double HorizontalOffset { get => _offset.X; }
@@ -251,13 +264,8 @@ namespace BigTextReader.App.View
             if (Source == null)
                 return;
 
-            for (int i = 0; i < visible; i++)
+            for (int i = 0; i < visible && i + start < LineCount; i++)
             {
-                if (i + start > LineCount)
-                {
-                    break;
-                }
-
                 var text = Source.GetLine(start + i);
                 if (text.Length > Globals.MaxRenderedLineLength) text = text[..Globals.MaxRenderedLineLength];
                 FormattedText line = new(
@@ -273,12 +281,6 @@ namespace BigTextReader.App.View
                     MaxLineCount = 1,
                 };
 
-                if (line.WidthIncludingTrailingWhitespace > _maxMeasuredWidth)
-                {
-                    _maxMeasuredWidth = line.WidthIncludingTrailingWhitespace;
-                    ScrollOwner?.InvalidateScrollInfo();
-                }
-
                 ctx.DrawText(line, new Point(-HorizontalOffset, i * _lineHeight - firstLineOffset));
             }
         }
@@ -293,7 +295,7 @@ namespace BigTextReader.App.View
             textView.ScrollOwner?.InvalidateScrollInfo();
         }
 
-        private static void OnLineCountChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        private static void OnScrollInfoChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var textView = (TextView)d;
             textView.InvalidateVisual();

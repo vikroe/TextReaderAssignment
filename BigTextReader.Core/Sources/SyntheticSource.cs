@@ -9,6 +9,8 @@
             return $"Line {index}: " + new string('x', (int)(index % 120));
         }
 
+        public long MaxLineBytes => 135;
+
         public void Dispose(){}
     }
 }

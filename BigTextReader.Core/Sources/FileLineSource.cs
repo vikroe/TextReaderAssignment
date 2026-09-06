@@ -10,7 +10,7 @@ namespace BigTextReader.Core.Sources
         private readonly SparseLineIndex _index = new();
         private readonly CancellationTokenSource _cts = new();
         private readonly long _fileLength;
-        private readonly EncodingDetector.BomInfo _bom = new();
+        private readonly EncodingDetector.BomInfo _bom;
         private int _disposed;
 
         public FileLineSource (string path)
@@ -34,6 +34,7 @@ namespace BigTextReader.Core.Sources
         }
 
         public long LineCount => _index.Count;
+        public long MaxLineBytes => _index.MaxLineBytes;
 
         public Task<long> IndexAsync(
             IProgress<IndexingProgress>? progress,

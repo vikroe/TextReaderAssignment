@@ -10,6 +10,12 @@
         {
             Volatile.Write(ref _count, count);
         }
+        private long _maxLineBytes;
+        public long MaxLineBytes => Volatile.Read(ref _maxLineBytes);
+        internal void SetMaxLineBytes(long length)
+        {
+            Volatile.Write(ref _maxLineBytes, length);
+        }
 
         internal void AddCheckpoint(long checkpoint)
         {
