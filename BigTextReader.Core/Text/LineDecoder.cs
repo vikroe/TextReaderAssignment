@@ -12,7 +12,7 @@ namespace BigTextReader.Core.Text
             if (line.Length > Globals.MaxRenderedLineLength)
             {
                 int cut = Globals.MaxRenderedLineLength;
-                while (cut < 0 && (line[cut] & 0xC0) == 0x80) cut--;
+                while (cut > 0 && (line[cut] & 0xC0) == 0x80) cut--;
                 line = line[..cut];
             }
 
