@@ -28,6 +28,7 @@ namespace BigTextReader.Core.Indexing
                 {
                     ct.ThrowIfCancellationRequested();
 
+                    int read;
                     try { read = RandomAccess.Read(handle, buffer, filePos); }
                     catch (ObjectDisposedException) { throw new OperationCanceledException(ct); }
 
