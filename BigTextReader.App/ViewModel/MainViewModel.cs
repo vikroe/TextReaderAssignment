@@ -79,6 +79,7 @@ namespace BigTextReader.App.ViewModel
         public void Dispose()
         {
             Source?.Dispose();
+            _cts?.Dispose();
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -103,13 +104,13 @@ namespace BigTextReader.App.ViewModel
 
         public async Task SelectFileSource()
         {
-            _cts?.Cancel(); _cts?.Dispose(); _cts = new(); var ct = _cts.Token;
-
             OpenFileDialog fileDialog = new OpenFileDialog();
             bool? success = fileDialog.ShowDialog();
 
             if (success == true)
             {
+                _cts?.Cancel(); _cts?.Dispose(); _cts = new(); var ct = _cts.Token;
+
                 var progress = new Progress<IndexingProgress>(p =>
                 {
                     if (ct.IsCancellationRequested) return;

@@ -11,9 +11,10 @@ namespace BigTextReader.Core.Text
         
             if (line.Length > Globals.MaxRenderedLineLength)
             {
-                int cut = Globals.MaxRenderedLineLength;
+                string message = "...[line truncated at 256KB]";
+                int cut = Globals.MaxRenderedLineLength - message.Length;
                 while (cut > 0 && (line[cut] & 0xC0) == 0x80) cut--;
-                line = line[..cut];
+                return Encoding.UTF8.GetString(line[..cut]) + message;
             }
 
             return Encoding.UTF8.GetString(line);

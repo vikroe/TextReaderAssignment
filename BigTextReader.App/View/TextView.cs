@@ -90,7 +90,7 @@ namespace BigTextReader.App.View
         }
 
         public double ExtentHeight => LineCount * _lineHeight;
-        public double ExtentWidth => MaxLineBytes * _charWidth;
+        public double ExtentWidth => Math.Min(MaxLineBytes, Globals.MaxRenderedLineLength) * _charWidth;
         private double WheelSize => 3 * _lineHeight;
         public double HorizontalOffset { get => _offset.X; }
         public double VerticalOffset { get => _offset.Y; }
