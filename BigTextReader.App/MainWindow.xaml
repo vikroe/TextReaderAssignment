@@ -12,6 +12,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="auto" />
             <RowDefinition />
+            <RowDefinition Height="auto" />
         </Grid.RowDefinitions>
 
         <userControls:MenuBar />
@@ -22,5 +23,6 @@
             VerticalScrollBarVisibility="Visible">
             <view:TextView Source="{Binding Source}" LineCount="{Binding LineCount}" MaxLineBytes="{Binding MaxLineBytes}" />
         </ScrollViewer>
+        <userControls:StatusBar Grid.Row="2" />
     </Grid>
 </Window>

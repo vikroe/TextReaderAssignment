@@ -1,23 +1,23 @@
 ﻿namespace BigTextReader.Core.Indexing
 {
-    public class SparseLineIndex
+    internal class SparseLineIndex
     {
         private readonly Lock _gate = new();
         private readonly List<long> _checkpoints = [];
         private long _count;
         public long Count => Volatile.Read(ref _count);
-        internal void SetCount(long count)
+        public void SetCount(long count)
         {
             Volatile.Write(ref _count, count);
         }
         private long _maxLineBytes;
         public long MaxLineBytes => Volatile.Read(ref _maxLineBytes);
-        internal void SetMaxLineBytes(long length)
+        public void SetMaxLineBytes(long length)
         {
             Volatile.Write(ref _maxLineBytes, length);
         }
 
-        internal void AddCheckpoint(long checkpoint)
+        public void AddCheckpoint(long checkpoint)
         {
             lock (_gate) _checkpoints.Add(checkpoint);
         }
@@ -34,6 +34,27 @@
                 ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(checkpoint, _checkpoints.Count);
                 return (_checkpoints[checked((int)checkpoint)], skip);
             }
+        }
+
+        public bool TryGetBlockRange(long line, out long startOffset, out long endOffset)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(line);
+            long checkpoint = line / Globals.CheckpointInterval;
+
+            lock(_gate)
+            {
+                ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(checkpoint, _checkpoints.Count);
+                startOffset = _checkpoints[(int)checkpoint];
+                if(checkpoint + 1 >= _checkpoints.Count)
+                {
+                    endOffset = 0;
+                    return false;
+                }
+
+                endOffset = _checkpoints[(int)checkpoint + 1];
+            }
+
+            return true;
         }
     }
 }

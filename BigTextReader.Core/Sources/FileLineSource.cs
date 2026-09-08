@@ -1,4 +1,5 @@
-﻿using BigTextReader.Core.Indexing;
+﻿using BigTextReader.Core.Caching;
+using BigTextReader.Core.Indexing;
 using BigTextReader.Core.Text;
 using Microsoft.Win32.SafeHandles;
 
@@ -7,7 +8,8 @@ namespace BigTextReader.Core.Sources
     public sealed class FileLineSource : ILineSource
     {
         private readonly SafeFileHandle _handle;
-        private readonly SparseLineIndex _index = new();
+        internal readonly SparseLineIndex _index = new();
+        private readonly LineBlockCache _cache = new();
         private readonly CancellationTokenSource _cts = new();
         private readonly long _fileLength;
         private readonly EncodingDetector.BomInfo _bom;
@@ -29,7 +31,7 @@ namespace BigTextReader.Core.Sources
 
             if (!_bom.Supported)
             {
-                throw new NotSupportedException("Unsupported BOM - only UTF-8 is supported");
+                throw new NotSupportedException("Unsupported BOM - only ASCII/UTF-8 is supported");
             }
         }
 
@@ -65,9 +67,23 @@ namespace BigTextReader.Core.Sources
             _handle.Dispose();
         }
 
-        public string GetLine(long index)
+        public string GetLine(long lineIndex)
         {
-            throw new NotImplementedException();
+            if (lineIndex < 0 || lineIndex >= _index.Count) return "";
+
+            if (!_cache.TryGetBlock(lineIndex, out var block))
+            {
+                long firstLine = lineIndex / Globals.CheckpointInterval * Globals.CheckpointInterval;
+                var gotRange = _index.TryGetBlockRange(lineIndex, out var start, out var end);
+                if (!gotRange) end = _fileLength;
+                block = _cache.LoadBlock(_handle, start, end, firstLine);
+            }
+
+            if (block == null || !block.TryGetLine(lineIndex, out var line))
+            {
+                return "";
+            }
+            return line;
         }
     }
 }

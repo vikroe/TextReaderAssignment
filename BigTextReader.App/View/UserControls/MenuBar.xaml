@@ -13,6 +13,7 @@
         <Menu>
             <MenuItem Header="File" FontSize="16">
                 <MenuItem Header="Synthetic Source" FontSize="16" Command="{Binding SelectSynthSourceCommand}"/>
+                <MenuItem Header="Open File..." FontSize="16" Command="{Binding SelectFileSourceCommand}"/>
             </MenuItem>
         </Menu>
 
