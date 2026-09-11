@@ -51,6 +51,13 @@ namespace BigTextReader.App.ViewModel
             private set => SetField(ref _progress, value);
         }
 
+        private bool _progressIndeterminate;
+        public bool ProgressIndeterminate
+        {
+            get => _progressIndeterminate;
+            private set => SetField(ref _progressIndeterminate, value);
+        }
+
         private bool _busy;
         public bool Busy
         {
@@ -128,6 +135,7 @@ namespace BigTextReader.App.ViewModel
             {
                 if (ct.IsCancellationRequested) return;
                 Progress = p.Fraction ?? 0;
+                ProgressIndeterminate = p.Fraction is null;
             });
             Busy = true;
             Progress = 0;
@@ -155,6 +163,7 @@ namespace BigTextReader.App.ViewModel
             {
                 if (ct.IsCancellationRequested) return;
                 Progress = p.Fraction ?? 0;
+                ProgressIndeterminate = p.Fraction is null;
             });
             Busy = true;
             Progress = 0;

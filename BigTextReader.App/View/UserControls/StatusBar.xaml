@@ -17,7 +17,8 @@
             <StatusBarItem>
                 <ProgressBar Width="160" Height="14" Minimum="0" Maximum="1" 
                              Value="{Binding Progress, Mode=OneWay}"
-                             Visibility="{Binding Busy, Converter={StaticResource BoolToVis}}" />
+                             Visibility="{Binding Busy, Converter={StaticResource BoolToVis}}"
+                             IsIndeterminate="{Binding ProgressIndeterminate}" />
             </StatusBarItem>
             <StatusBarItem>
                 <TextBlock Text="{Binding StatusText}" />
