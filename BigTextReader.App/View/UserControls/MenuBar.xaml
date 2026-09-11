@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:BigTextReader.App.View.UserControls"
+             xmlns:view="clr-namespace:BigTextReader.App.View"
              mc:Ignorable="d" 
              Height="24" d:DesignWidth="800">
     <Grid>
@@ -12,8 +13,11 @@
         </Grid.RowDefinitions>
         <Menu>
             <MenuItem Header="File" FontSize="16">
-                <MenuItem Header="Synthetic Source" FontSize="16" Command="{Binding SelectSynthSourceCommand}"/>
-                <MenuItem Header="Open File..." FontSize="16" Command="{Binding SelectFileSourceCommand}"/>
+                <MenuItem Header="Open File..." FontSize="16" Command="ApplicationCommands.Open" />
+                <MenuItem Header="Open URL..." FontSize="16" Command="{x:Static view:Commands.OpenUrl}" />
+                <MenuItem Header="Generate Text..." FontSize="16" Command="{x:Static view:Commands.GenerateRandomText}" />
+                <Separator />
+                <MenuItem Header="Save File..." FontSize="16" Command="ApplicationCommands.Save" />
             </MenuItem>
         </Menu>
 

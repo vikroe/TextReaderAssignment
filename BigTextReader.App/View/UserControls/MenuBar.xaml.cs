@@ -1,4 +1,5 @@
-﻿using System.Windows.Controls;
+﻿using Microsoft.Win32;
+using System.Windows.Controls;
 
 namespace BigTextReader.App.View.UserControls
 {

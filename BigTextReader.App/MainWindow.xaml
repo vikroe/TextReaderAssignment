@@ -8,6 +8,12 @@
         xmlns:view="clr-namespace:BigTextReader.App.View"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
+    <Window.CommandBindings>
+        <CommandBinding Command="ApplicationCommands.Open" Executed="OnOpenFile" CanExecute="OnCanRun" />
+        <CommandBinding Command="{x:Static view:Commands.OpenUrl}" Executed="OnOpenUrl" CanExecute="OnCanRun" />
+        <CommandBinding Command="{x:Static view:Commands.GenerateRandomText}" Executed="OnGenerateText" CanExecute="OnCanRun" />
+        <CommandBinding Command="ApplicationCommands.Save" Executed="OnSaveFile" CanExecute="OnCanSave" />
+    </Window.CommandBindings>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="auto" />
@@ -15,7 +21,7 @@
             <RowDefinition Height="auto" />
         </Grid.RowDefinitions>
 
-        <userControls:MenuBar />
+        <userControls:MenuBar x:Name="MenuBar" />
         <ScrollViewer 
             Grid.Row="1"
             CanContentScroll="True"

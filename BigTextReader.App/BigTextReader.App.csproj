@@ -17,4 +17,10 @@
     <ProjectReference Include="..\BigTextReader.Core\BigTextReader.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Update="View\Dialogs\RandomTextPrompt.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+
 </Project>

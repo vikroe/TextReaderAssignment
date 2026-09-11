@@ -7,6 +7,8 @@ namespace BigTextReader.Core.Sources
 {
     public sealed class FileLineSource : ILineSource
     {
+        private readonly string _path;
+        public string Path => _path;
         private readonly SafeFileHandle _handle;
         internal readonly SparseLineIndex _index = new();
         private readonly LineBlockCache _cache = new();
@@ -17,6 +19,7 @@ namespace BigTextReader.Core.Sources
 
         public FileLineSource (string path)
         {
+            _path = path;
             _handle = File.OpenHandle(
                 path,
                 FileMode.Open,
