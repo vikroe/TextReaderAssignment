@@ -2,6 +2,7 @@
 using System.IO;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
+using System.Windows.Input;
 using BigTextReader.Core.Indexing;
 using BigTextReader.Core.Loading;
 using BigTextReader.Core.Sources;
@@ -63,7 +64,13 @@ namespace BigTextReader.App.ViewModel
         public bool Busy
         {
             get => _busy;
-            private set => SetField(ref _busy, value);
+            private set => SetBusy(value);
+        }
+
+        private void SetBusy(bool value)
+        {
+            SetField(ref _busy, value);
+            CommandManager.InvalidateRequerySuggested();
         }
 
         private string _statusText = "";
@@ -76,6 +83,7 @@ namespace BigTextReader.App.ViewModel
         public void Dispose()
         {
             Source?.Dispose();
+            _tmpStore.Dispose();
             _cts?.Dispose();
         }
 
@@ -94,115 +102,133 @@ namespace BigTextReader.App.ViewModel
             return true;
         }
 
-        public async Task OpenFileAsync(string fileName)
+        private async Task OpenFileAsync(string fileName, long generation, CancellationToken ct)
         {
-            _cts?.Cancel(); _cts?.Dispose(); _cts = new(); var ct = _cts.Token;
+            if (_generation != generation) return;
 
             var progress = new Progress<IndexingProgress>(p =>
             {
-                if (ct.IsCancellationRequested) return;
+                if (generation != _generation) return;
                 LineCount = p.LinesFound;
                 MaxLineBytes = p.MaxLineBytes;
                 Progress = p.Fraction;
             });
-            Busy = true;
-            Progress = 0;
 
-            try
-            {
-                var source = new FileLineSource(fileName);
-                Source = source;
-                StatusText = "Indexing...";
-                await source.IndexAsync(progress, ct);
-                LineCount = source.LineCount;
-                MaxLineBytes = source.MaxLineBytes;
-                Progress = 1;
-                StatusText = "";
-            }
-            catch (OperationCanceledException) { StatusText = ""; }
-            catch (NotSupportedException ex) { StatusText = ex.Message; }
-            catch (IOException) { StatusText = "File is already in use"; }
-            finally { Busy = false; }
+            var source = new FileLineSource(fileName);
+            Source = source;
+            BeginPhase("Indexing...", generation); 
+
+            await source.IndexAsync(progress, ct);
+
+            if (generation != _generation) return;
+            LineCount = source.LineCount;
+            MaxLineBytes = source.MaxLineBytes;
+            Progress = 1;
         }
 
-        public async Task OpenUrlAsync(Uri uri)
-        {
-            _cts?.Cancel(); _cts?.Dispose(); _cts = new(); var ct = _cts.Token;
-
-            var progress = new Progress<TransferProgress>(p =>
+        private IProgress<TransferProgress> TransferHandler(long generation) =>
+            new Progress<TransferProgress>(p =>
             {
-                if (ct.IsCancellationRequested) return;
+                if (generation != _generation) return;
                 Progress = p.Fraction ?? 0;
                 ProgressIndeterminate = p.Fraction is null;
             });
-            Busy = true;
+
+        private void BeginPhase(string status, long generation)
+        {
+            if (generation != _generation) return;
+            StatusText = status;
             Progress = 0;
+            ProgressIndeterminate = false;
+        }
+
+        private void UpdateStatus(string status, long generation)
+        {
+            if (generation == _generation)
+                StatusText = status;
+        }
+
+        public async Task OpenFileCommandAsync(string fileName)
+        {
+            _cts?.Cancel(); _cts?.Dispose(); _cts = new(); var ct = _cts.Token;
+            Busy = true;
+            var generation = ++_generation;
 
             try
             {
-                StatusText = "Downloading...";
+                await OpenFileAsync(fileName, generation, ct);
+                UpdateStatus("", generation);
+            }
+            catch (OperationCanceledException) { UpdateStatus("", generation); }
+            catch (NotSupportedException ex) { UpdateStatus(ex.Message, generation); }
+            catch (IOException) { UpdateStatus("File is already in use", generation);  }
+            finally { if (generation == _generation) Busy = false; }
+        }
+
+        public async Task OpenUrlCommandAsync(Uri uri)
+        {
+            _cts?.Cancel(); _cts?.Dispose(); _cts = new(); var ct = _cts.Token;
+            Busy = true;
+
+            var generation = ++_generation;
+            var progress = TransferHandler(generation);
+            BeginPhase("Downloading...", generation);
+
+            try
+            {
                 string target = _tmpStore.NewFile(".html");
                 await UrlDownloader.DownloadAsync(uri, target, progress, ct);
-                Progress = 1;
-                await OpenFileAsync(target);
+                await OpenFileAsync(target, generation, ct);
+                UpdateStatus("", generation);
             } 
-            catch (OperationCanceledException) { StatusText = ""; }
-            catch (HttpRequestException ex) { StatusText = ex.Message; }
-            catch (IOException ex) { StatusText = ex.Message; }
-            catch (UnauthorizedAccessException) { StatusText = "No permission to write the temp file."; }
-            finally { Busy = false; }
+            catch (OperationCanceledException) { UpdateStatus("", generation); }
+            catch (HttpRequestException ex) { UpdateStatus(ex.Message, generation); }
+            catch (IOException ex) { UpdateStatus(ex.Message, generation); }
+            catch (UnauthorizedAccessException) { UpdateStatus("No permission to write the temp file.", generation); }
+            finally { if (generation == _generation) Busy = false; }
         }
 
-        public async Task SaveFileAsync(string path)
+        public async Task SaveFileCommandAsync(string path)
         {
             _cts?.Cancel(); _cts?.Dispose(); _cts = new(); var ct = _cts.Token;
-
-            var progress = new Progress<TransferProgress>(p =>
-            {
-                if (ct.IsCancellationRequested) return;
-                Progress = p.Fraction ?? 0;
-                ProgressIndeterminate = p.Fraction is null;
-            });
             Busy = true;
-            Progress = 0;
+
+            var generation = ++_generation;
+            var progress = TransferHandler(generation);
+            BeginPhase("Saving...", generation);
 
             try
             {
-                StatusText = "Saving...";
                 await FileSaver.SaveFileAsync(Source!, path, progress, ct);
-                Progress = 1;
-                StatusText = "";
+                UpdateStatus("", generation);
             }
-            catch (NotSupportedException ex) { StatusText = ex.Message; }
-            catch (IOException ex) { StatusText = ex.Message; }
-            catch (UnauthorizedAccessException) { StatusText = "Unauthorized access to target file."; }
-            catch (OperationCanceledException) { StatusText = ""; }
-            finally { Busy = false; }
+            catch (NotSupportedException ex) { UpdateStatus(ex.Message, generation); }
+            catch (IOException ex) { UpdateStatus(ex.Message, generation); }
+            catch (UnauthorizedAccessException) { UpdateStatus("Unauthorized access to target file.", generation); }
+            catch (OperationCanceledException) { UpdateStatus("", generation); }
+            finally { if (generation == _generation) Busy = false; }
         }
 
-        public async Task GenerateRandomTextAsync(int lineCount, bool lineNumbers)
+        public async Task GenerateRandomTextCommandAsync(int lineCount, bool lineNumbers)
         {
             _cts?.Cancel(); _cts?.Dispose(); _cts = new(); var ct = _cts.Token;
-
-            var progress = new Progress<TransferProgress>(p =>
-            {
-                if (ct.IsCancellationRequested) return;
-                Progress = p.Fraction ?? 0;
-            });
             Busy = true;
-            Progress = 0;
+
+            var generation = ++_generation;
+            var progress = TransferHandler(generation);
+            BeginPhase("Generating...", generation);
 
             try
             {
-                StatusText = "Generating...";
                 string target = _tmpStore.NewFile(".txt");
                 await RandomTextGenerator.GenerateAsync(target, lineCount, lineNumbers, progress, ct);
-                await OpenFileAsync(target);
+                await OpenFileAsync(target, generation, ct);
+                UpdateStatus("", generation);
             }
-            catch (OperationCanceledException) { StatusText = ""; }
-            catch (IOException ex) { StatusText = ex.Message; }
-            catch (UnauthorizedAccessException) { StatusText = "No permission to write the temp file."; }
-            finally { Busy = false; }
+            catch (OperationCanceledException) { UpdateStatus("", generation); }
+            catch (IOException ex) { UpdateStatus(ex.Message, generation); }
+            catch (UnauthorizedAccessException) { UpdateStatus("No permission to write the temp file.", generation); }
+            finally { if (generation == _generation) Busy = false; }
         }
     }
 }

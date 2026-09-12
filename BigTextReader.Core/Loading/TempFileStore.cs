@@ -21,13 +21,17 @@
         private static void SweepOrphans()
         {
             foreach(string f in Directory.EnumerateFiles(Root))
-                try { File.Delete(f); } catch (IOException) { }
+                try { File.Delete(f); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
         }
         
         public void Dispose()
         {
             foreach (string f in _paths)
-                try { File.Delete(f); } catch (IOException) { }
+                try { File.Delete(f); } 
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
             _paths.Clear();
         }
     }

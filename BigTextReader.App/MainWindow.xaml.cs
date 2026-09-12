@@ -15,33 +15,35 @@ namespace BigTextReader.App
             InitializeComponent();
             _vm = new();
             DataContext = _vm;
+
+            Closed += (_, _) => _vm.Dispose();
         }
 
         private async void OnOpenFile(object sender, ExecutedRoutedEventArgs e)
         {
             var dialog = new OpenFileDialog();
             if (dialog.ShowDialog(this) == true)
-                await _vm.OpenFileAsync(dialog.FileName);
+                await _vm.OpenFileCommandAsync(dialog.FileName);
         }
 
         private async void OnOpenUrl(object sender, ExecutedRoutedEventArgs e)
         {
             var dialog = new UrlPrompt { Owner = this };
             if (dialog.ShowDialog() == true && dialog.Result is { } url)
-                await _vm.OpenUrlAsync(url);
+                await _vm.OpenUrlCommandAsync(url);
         }
         private async void OnGenerateText(object sender, ExecutedRoutedEventArgs e)
         {
             var dialog = new RandomTextPrompt { Owner = this };
             if (dialog.ShowDialog() == true)
-                await _vm.GenerateRandomTextAsync(dialog.LineCount, dialog.LineNumbers);
+                await _vm.GenerateRandomTextCommandAsync(dialog.LineCount, dialog.LineNumbers);
         }
 
         private async void OnSaveFile(object sender, ExecutedRoutedEventArgs e)
         {
             var dialog = new SaveFileDialog();
             if (dialog.ShowDialog(this) == true)
-                await _vm.SaveFileAsync(dialog.FileName);
+                await _vm.SaveFileCommandAsync(dialog.FileName);
         }
 
         private void OnCanRun(object sender, CanExecuteRoutedEventArgs e) => e.CanExecute = true;
