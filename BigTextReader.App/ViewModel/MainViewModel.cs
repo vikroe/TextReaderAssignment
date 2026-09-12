@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.IO;
+using System.Net.Http;
 using System.Runtime.CompilerServices;
 using BigTextReader.Core.Indexing;
 using BigTextReader.Core.Loading;
@@ -11,7 +12,6 @@ namespace BigTextReader.App.ViewModel
     {
         private CancellationTokenSource? _cts;
         private readonly TempFileStore _tmpStore = new();
-        private readonly UrlDownloader _http = new();
         private ILineSource? _source; 
         public ILineSource? Source
         {
@@ -58,6 +58,7 @@ namespace BigTextReader.App.ViewModel
             private set => SetField(ref _progressIndeterminate, value);
         }
 
+        private long _generation;
         private bool _busy;
         public bool Busy
         {
@@ -144,11 +145,14 @@ namespace BigTextReader.App.ViewModel
             {
                 StatusText = "Downloading...";
                 string target = _tmpStore.NewFile(".html");
-                await _http.DownloadAsync(uri, target, progress, ct);
+                await UrlDownloader.DownloadAsync(uri, target, progress, ct);
                 Progress = 1;
                 await OpenFileAsync(target);
             } 
             catch (OperationCanceledException) { StatusText = ""; }
+            catch (HttpRequestException ex) { StatusText = ex.Message; }
+            catch (IOException ex) { StatusText = ex.Message; }
+            catch (UnauthorizedAccessException) { StatusText = "No permission to write the temp file."; }
             finally { Busy = false; }
         }
 

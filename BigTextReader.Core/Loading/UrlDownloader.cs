@@ -2,24 +2,19 @@
 
 namespace BigTextReader.Core.Loading
 {
-    public class UrlDownloader: IDisposable
+    public static class UrlDownloader
     {
         private static readonly HttpClient _client = new()
         {
-            Timeout = TimeSpan.FromSeconds(100),
+            Timeout = Timeout.InfiniteTimeSpan,
         };
 
-        public UrlDownloader()
+        static UrlDownloader()
         {
             _client.DefaultRequestHeaders.UserAgent.ParseAdd("BigTextReader/1.0");
         }
 
-        public void Dispose()
-        {
-            _client?.Dispose();
-        }
-
-        public async Task DownloadAsync(
+        public static async Task DownloadAsync(
             Uri url,
             string path,
             IProgress<TransferProgress>? progress,
