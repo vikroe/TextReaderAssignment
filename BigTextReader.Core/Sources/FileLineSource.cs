@@ -1,5 +1,7 @@
 ﻿using BigTextReader.Core.Caching;
 using BigTextReader.Core.Indexing;
+using BigTextReader.Core.Loading;
+using BigTextReader.Core.Search;
 using BigTextReader.Core.Text;
 using Microsoft.Win32.SafeHandles;
 
@@ -17,7 +19,7 @@ namespace BigTextReader.Core.Sources
         private readonly EncodingDetector.BomInfo _bom;
         private int _disposed;
 
-        public FileLineSource (string path)
+        public FileLineSource(string path)
         {
             _path = path;
             _handle = File.OpenHandle(
@@ -48,7 +50,7 @@ namespace BigTextReader.Core.Sources
             var linked = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, ct);
             return Task.Run(() =>
             {
-                try 
+                try
                 {
                     return LineIndexer.Scan(
                         _handle,
@@ -87,6 +89,34 @@ namespace BigTextReader.Core.Sources
                 return "";
             }
             return line;
+        }
+
+        public Task<SearchResults> SearchAsync(string pattern, IProgress<SearchingProgress>? progress, CancellationToken ct)
+        {
+            var linked = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, ct);
+            return Task.Run(() =>
+            {
+                try
+                {
+                    var (offsets, capped) = ByteSearcher.Search(
+                        pattern,
+                        _handle,
+                        _fileLength,
+                        _bom,
+                        progress,
+                        linked.Token);
+                    return HitResolver.ResolveHitOffsets(
+                        offsets,
+                        _handle,
+                        _fileLength,
+                        pattern,
+                        capped,
+                        _index,
+                        progress,
+                        linked.Token);
+                }
+                finally { linked.Dispose(); }
+            }, linked.Token);
         }
     }
 }

@@ -8,5 +8,6 @@
         public const int MaxRenderedLineLength = 1 << 18;
         public const int MaxBlockBytes = 1 << 22;
         public const int CacheBlockCount = 50;
+        public const int MaxSearchHits = 1 << 18;
     }
 }

@@ -19,6 +19,9 @@
                 <Separator />
                 <MenuItem Header="Save File..." FontSize="16" Command="ApplicationCommands.Save" />
             </MenuItem>
+            <MenuItem Header="View" FontSize="16">
+                <MenuItem Header="Find" FontSize="16" Command="ApplicationCommands.Find" />
+            </MenuItem>
         </Menu>
 
     </Grid>

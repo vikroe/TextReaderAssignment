@@ -64,7 +64,7 @@ namespace BigTextReader.Core.Caching
             block.Reset(firstLine, ++_tick);
 
             int want = (int)Math.Min(Globals.MaxBlockBytes, end - start);
-            int read = FillRead(handle, _buffer.AsSpan(0, want), start);
+            int read = FileHandleUtils.FillRead(handle, _buffer.AsSpan(0, want), start);
             var span = _buffer.AsSpan(0, read);
             int scannedOffset = 0;
 
@@ -86,18 +86,6 @@ namespace BigTextReader.Core.Caching
                 block.AddLine(LineDecoder.DecodeByteLine(span[scannedOffset..]), span.Length - scannedOffset);
 
             return block;
-        }
-
-        private static int FillRead(SafeFileHandle handle, Span<byte> buffer, long offset)
-        {
-            int total = 0;
-            while (total < buffer.Length)
-            {
-                int n = RandomAccess.Read(handle, buffer[total..], offset + total);
-                if (n == 0) break;
-                total += n;
-            }
-            return total;
         }
     }
 }

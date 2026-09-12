@@ -56,5 +56,16 @@
 
             return true;
         }
+
+        public int CheckpointAtOrBefore(long byteOffset)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(byteOffset);
+
+            lock (_gate)
+            {
+                var found = _checkpoints.BinarySearch(byteOffset);
+                return found >= 0 ? found : Math.Max(0, ~found - 1);
+            }
+        }
     }
 }
