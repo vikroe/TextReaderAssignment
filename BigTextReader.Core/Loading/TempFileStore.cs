@@ -1,9 +1,4 @@
-﻿using Microsoft.Win32.SafeHandles;
-using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace BigTextReader.Core.Loading
+﻿namespace BigTextReader.Core.Loading
 {
     public sealed class TempFileStore: IDisposable
     {

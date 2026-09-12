@@ -24,7 +24,7 @@ namespace BigTextReader.Core.Caching
                 if (b.TryGetLine(lineIndex, out var line))
                 {
                     block = b;
-                    b.LastUsed = ++_tick;
+                    b.Touch(++_tick);
                     return true;
                 }
             }
@@ -33,10 +33,10 @@ namespace BigTextReader.Core.Caching
             return false;
         }
 
-        private int FindLastUsedBlock()
+        private int FindLeastUsedBlock()
         {
-            long lastUsed = long.MaxValue;
-            int lastUsedBlock = -1;
+            long leastUsed = long.MaxValue;
+            int leastUsedBlock = -1;
             for (var i = 0; i < _blocks.Length; i++)
             {
                 var block = _blocks[i];
@@ -44,13 +44,13 @@ namespace BigTextReader.Core.Caching
                 {
                     return i;
                 }
-                if (block.LastUsed < lastUsed)
+                if (block.LastUsed < leastUsed)
                 {
-                    lastUsed = block.LastUsed;
-                    lastUsedBlock = i;
+                    leastUsed = block.LastUsed;
+                    leastUsedBlock = i;
                 }
             }
-            return lastUsedBlock;
+            return leastUsedBlock;
         }
 
         public CacheBlock LoadBlock(
@@ -60,11 +60,8 @@ namespace BigTextReader.Core.Caching
             long firstLine
             )
         {
-            var block = _blocks[FindLastUsedBlock()];
-            block.Lines.Clear();
-            block.FirstLine = firstLine;
-            block.Bytes = 0;
-            block.LastUsed = ++_tick;
+            var block = _blocks[FindLeastUsedBlock()];
+            block.Reset(firstLine, ++_tick);
 
             int want = (int)Math.Min(Globals.MaxBlockBytes, end - start);
             int read = FillRead(handle, _buffer.AsSpan(0, want), start);
@@ -78,16 +75,15 @@ namespace BigTextReader.Core.Caching
                 if (newLine < 0) break;
 
                 var lineEnd = newLine + scannedOffset;
-                block.Lines.Add(LineDecoder.DecodeByteLine(span[scannedOffset..lineEnd]));
-                block.Bytes += newLine;
+                block.AddLine(LineDecoder.DecodeByteLine(span[scannedOffset..lineEnd]), newLine);
 
                 scannedOffset += newLine + 1;
                 lineNo++;
             }
 
             var truncated = want < end - start;
-            if (!truncated && scannedOffset < span.Length && block.Lines.Count < Globals.CheckpointInterval)
-                block.Lines.Add(LineDecoder.DecodeByteLine(span[scannedOffset..])); // Add trailing line if present
+            if (!truncated && scannedOffset < span.Length && block.Count < Globals.CheckpointInterval)
+                block.AddLine(LineDecoder.DecodeByteLine(span[scannedOffset..]), span.Length - scannedOffset);
 
             return block;
         }

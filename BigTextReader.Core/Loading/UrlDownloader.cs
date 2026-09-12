@@ -47,7 +47,7 @@ namespace BigTextReader.Core.Loading
 
                 if (progress != null && Stopwatch.GetElapsedTime(currentTimestamp).TotalMilliseconds >= Globals.ProgressIntervalMs)
                 {
-                    progress?.Report(new(written, total));
+                    progress.Report(new(written, total));
                     currentTimestamp = Stopwatch.GetTimestamp();
                 }
             }

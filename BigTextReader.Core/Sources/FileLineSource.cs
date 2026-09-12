@@ -10,7 +10,7 @@ namespace BigTextReader.Core.Sources
         private readonly string _path;
         public string Path => _path;
         private readonly SafeFileHandle _handle;
-        internal readonly SparseLineIndex _index = new();
+        private readonly SparseLineIndex _index = new();
         private readonly LineBlockCache _cache = new();
         private readonly CancellationTokenSource _cts = new();
         private readonly long _fileLength;

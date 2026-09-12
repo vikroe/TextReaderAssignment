@@ -125,11 +125,8 @@ namespace BigTextReader.App.ViewModel
             finally { Busy = false; }
         }
 
-        public async Task OpenUrlAsync(Uri? uri)
+        public async Task OpenUrlAsync(Uri uri)
         {
-            if (uri is null)
-                return; // should not happen
-
             _cts?.Cancel(); _cts?.Dispose(); _cts = new(); var ct = _cts.Token;
 
             var progress = new Progress<TransferProgress>(p =>
@@ -158,9 +155,6 @@ namespace BigTextReader.App.ViewModel
 
         public async Task SaveFileAsync(string path)
         {
-            if (Source is null)
-                return; // should not happen
-
             _cts?.Cancel(); _cts?.Dispose(); _cts = new(); var ct = _cts.Token;
 
             var progress = new Progress<TransferProgress>(p =>
@@ -175,7 +169,7 @@ namespace BigTextReader.App.ViewModel
             try
             {
                 StatusText = "Saving...";
-                await FileSaver.SaveFileAsync(Source, path, progress, ct);
+                await FileSaver.SaveFileAsync(Source!, path, progress, ct);
                 Progress = 1;
                 StatusText = "";
             }
