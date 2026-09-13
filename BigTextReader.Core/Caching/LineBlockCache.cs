@@ -75,7 +75,7 @@ namespace BigTextReader.Core.Caching
                 if (newLine < 0) break;
 
                 var lineEnd = newLine + scannedOffset;
-                block.AddLine(LineDecoder.DecodeByteLine(span[scannedOffset..lineEnd]), newLine);
+                block.AddLine(LineDecoder.DecodeByteLine(span[scannedOffset..lineEnd]));
 
                 scannedOffset += newLine + 1;
                 lineNo++;
@@ -83,7 +83,13 @@ namespace BigTextReader.Core.Caching
 
             var truncated = want < end - start;
             if (!truncated && scannedOffset < span.Length && block.Count < Globals.CheckpointInterval)
-                block.AddLine(LineDecoder.DecodeByteLine(span[scannedOffset..]), span.Length - scannedOffset);
+            {
+                block.AddLine(LineDecoder.DecodeByteLine(span[scannedOffset..]));
+            }
+            else if (truncated && block.Count == 0)
+            {
+                block.AddLine(LineDecoder.DecodeByteLine(span));
+            }
 
             return block;
         }

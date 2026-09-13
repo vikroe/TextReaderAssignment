@@ -4,16 +4,16 @@ namespace BigTextReader.Core
 {
     internal static class FileHandleUtils
     {
-        public static int FillRead(SafeFileHandle handle, Span<byte> buffer, long offset)
+        public static int FillRead(SafeFileHandle handle, Span<byte> buffer, long offset, CancellationToken ct = default)
         {
-            int total = 0;
-            while (total < buffer.Length)
+            int totalRead = 0;
+            while (totalRead < buffer.Length)
             {
-                int n = RandomAccess.Read(handle, buffer[total..], offset + total);
-                if (n == 0) break;
-                total += n;
+                int read = ReadAt(handle, buffer[totalRead..], offset + totalRead, ct);
+                if (read == 0) break;
+                totalRead += read;
             }
-            return total;
+            return totalRead;
         }
 
         public static int ReadAt(SafeFileHandle handle, Span<byte> buffer, long fileOffset, CancellationToken ct)

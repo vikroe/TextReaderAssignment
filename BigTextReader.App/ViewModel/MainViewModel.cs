@@ -2,7 +2,6 @@
 using System.IO;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
 using System.Windows.Input;
 using BigTextReader.Core.Indexing;
 using BigTextReader.Core.Loading;

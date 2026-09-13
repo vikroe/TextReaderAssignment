@@ -7,8 +7,6 @@ namespace BigTextReader.App.View.Dialogs
     {
         private int _lineCount;
         public int LineCount => _lineCount;
-
-        /// <summary>Whether each line should be prefixed with its own index.</summary>
         public bool LineNumbers => LineNumberCheckBox.IsChecked == true;
 
         public RandomTextPrompt()
@@ -32,6 +30,7 @@ namespace BigTextReader.App.View.Dialogs
             }
             else
             {
+                ErrorText.Text = "";
                 GenerateButton.IsEnabled = true;
                 return;
             }

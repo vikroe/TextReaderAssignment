@@ -56,7 +56,7 @@ namespace BigTextReader.Core.Search
 
                     var want = (int)Math.Max(0, Math.Min(end - start, Globals.MaxRenderedLineLength));
                     lineSpan = lineBuffer.AsSpan(0, want);
-                    var read = FileHandleUtils.FillRead(handle, lineSpan, start);
+                    var read = FileHandleUtils.FillRead(handle, lineSpan, start, ct);
                     if (read != want)
                         throw new IOException("A line was shorter than expected");
 
