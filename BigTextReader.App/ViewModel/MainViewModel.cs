@@ -238,6 +238,20 @@ namespace BigTextReader.App.ViewModel
                 OnPropertyChanged(nameof(SearchStatus));
             });
         
+        public event EventHandler<SearchHit>? ScrollToHitRequested;
+
+        public void GoToNextHit() => MoveToHit(_searchResults.NextIndex(_currentSearchResult));
+
+        public void GoToPreviousHit() => MoveToHit(_searchResults.PreviousIndex(_currentSearchResult));
+
+        private void MoveToHit(int index)
+        {
+            if (index < 0) return;
+
+            CurrentSearchResult = index;
+            ScrollToHitRequested?.Invoke(this, _searchResults.Hits[index]);
+        }
+
         private static string? Describe(Exception ex) => ex switch
         {
             OperationCanceledException => "",

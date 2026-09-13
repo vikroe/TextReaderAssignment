@@ -2,7 +2,10 @@
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
+using System.Windows.Threading;
+using System.Diagnostics;
 using System.Globalization;
+using BigTextReader.Core.Search;
 using BigTextReader.Core.Sources;
 using BigTextReader.Core;
 
@@ -12,6 +15,9 @@ namespace BigTextReader.App.View
     {
         public TextView()
         {
+            Focusable = true;
+            Unloaded += (_, _) => StopScrollAnimation();
+
             _pixelsPerDip = VisualTreeHelper.GetDpi(this).PixelsPerDip;
             MeasureFont();
         }
@@ -51,8 +57,32 @@ namespace BigTextReader.App.View
                 typeof(TextView),
                 new PropertyMetadata((long)0, OnScrollInfoChanged));
 
+        public SearchResults SearchResults
+        {
+            get { return (SearchResults)GetValue(SearchResultsProperty); }
+            set { SetValue(SearchResultsProperty, value); }
+        }
+        public static readonly DependencyProperty SearchResultsProperty =
+            DependencyProperty.Register(
+                nameof(SearchResults),
+                typeof(SearchResults),
+                typeof(TextView),
+                new PropertyMetadata(SearchResults.Empty, OnHighlightChanged));
+
+        public int CurrentSearchResult
+        {
+            get { return (int)GetValue(CurrentSearchResultProperty); }
+            set { SetValue(CurrentSearchResultProperty, value); }
+        }
+        public static readonly DependencyProperty CurrentSearchResultProperty =
+            DependencyProperty.Register(
+                nameof(CurrentSearchResult),
+                typeof(int),
+                typeof(TextView),
+                new PropertyMetadata(-1, OnHighlightChanged));
 
 
+        // Text fields
         private const double FontSize = 14;
         private bool _canHorizontallyScroll;
         private bool _canVerticallyScroll;
@@ -60,17 +90,36 @@ namespace BigTextReader.App.View
         private Vector _offset;
         private Size _viewport;
 
-        // FormattedText fields
         private Typeface _typeface = new Typeface(
             new FontFamily("Consolas"),
             FontStyles.Normal,
             FontWeights.Normal,
             FontStretches.Normal
         );
+
+        // Text sizes
         private double _lineHeight = 16;
         private double _pixelsPerDip = 1.0;
         private double _charWidth = 8;
+
+        // Animation fields
+        private double _targetOffsetY;
+        private bool _isAnimatingScroll;
+        private long _lastFrameTimestamp;
+        private const double ScrollTimeConstantSeconds = 0.045;
+        private const double ScrollSnapThreshold = 0.5;
+        private const double MaxAnimatedDistanceViewports = 3;
+
+        // Colors
         private readonly Brush _foreground = Brushes.Black;
+        private static readonly Brush _matchBrush = Freeze(Color.FromRgb(0xFF, 0xE0, 0x7A));
+        private static readonly Brush _currentMatchBrush = Freeze(Color.FromRgb(0xFF, 0x9B, 0x3D));
+        private static Brush Freeze(Color color)
+        {
+            var brush = new SolidColorBrush(color);
+            brush.Freeze();
+            return brush;
+        }
 
         public bool CanHorizontallyScroll
         {
@@ -168,10 +217,7 @@ namespace BigTextReader.App.View
             );
         }
 
-        public void MouseWheelDown()
-        {
-            SetVerticalOffset(VerticalOffset + WheelSize);
-        }
+        public void MouseWheelDown() => AnimateVerticalBy(WheelSize);
 
         public void MouseWheelLeft()
         {
@@ -183,24 +229,83 @@ namespace BigTextReader.App.View
             SetHorizontalOffset(HorizontalOffset + WheelSize);
         }
 
-        public void MouseWheelUp()
+        public void MouseWheelUp() => AnimateVerticalBy(-WheelSize);
+
+        private void AnimateVerticalBy(double delta)
         {
-            SetVerticalOffset(VerticalOffset - WheelSize);
+            double maximum = Math.Max(0, ExtentHeight - ViewportHeight);
+
+            double from = _isAnimatingScroll ? _targetOffsetY : _offset.Y;
+            _targetOffsetY = Math.Clamp(from + delta, 0, maximum);
+
+            if (Math.Abs(_targetOffsetY - _offset.Y) < ScrollSnapThreshold)
+            {
+                StopScrollAnimation();
+                return;
+            }
+
+            StartScrollAnimation();
         }
 
-        public void ScrollToLine(long line, long column) 
+        private void AnimateVerticalTo(double target)
         {
-            var vertical = line * _lineHeight + ViewportHeight / 2;
-            var horizontal = column * _charWidth + ViewportWidth / 2;
+            target = Math.Clamp(target, 0, Math.Max(0, ExtentHeight - ViewportHeight));
 
-            SetVerticalOffset(vertical);
-            SetHorizontalOffset(horizontal);
+            if (Math.Abs(target - _offset.Y) > MaxAnimatedDistanceViewports * ViewportHeight)
+            {
+                SetVerticalOffset(target);
+                return;
+            }
+
+            AnimateVerticalBy(target - (_isAnimatingScroll ? _targetOffsetY : _offset.Y));
         }
 
-        public void PageDown()
+        private void StartScrollAnimation()
         {
-            SetVerticalOffset(VerticalOffset + ViewportHeight);
+            if (_isAnimatingScroll) return;
+
+            _isAnimatingScroll = true;
+            _lastFrameTimestamp = Stopwatch.GetTimestamp();
+            CompositionTarget.Rendering += OnRenderingFrame;
         }
+
+        private void StopScrollAnimation()
+        {
+            if (!_isAnimatingScroll) return;
+
+            _isAnimatingScroll = false;
+            CompositionTarget.Rendering -= OnRenderingFrame;
+        }
+
+        private void OnRenderingFrame(object? sender, EventArgs e)
+        {
+            long now = Stopwatch.GetTimestamp();
+            double elapsedSeconds = Stopwatch.GetElapsedTime(_lastFrameTimestamp, now).TotalSeconds;
+            _lastFrameTimestamp = now;
+
+            double alpha = 1 - Math.Exp(-elapsedSeconds / ScrollTimeConstantSeconds);
+            double next = _offset.Y + (_targetOffsetY - _offset.Y) * alpha;
+
+            if (Math.Abs(_targetOffsetY - next) < ScrollSnapThreshold)
+            {
+                next = _targetOffsetY;
+                StopScrollAnimation();
+            }
+
+            _offset.Y = next;
+            ScrollOwner?.InvalidateScrollInfo();
+            InvalidateVisual();
+        }
+
+        public void ScrollToLine(long line, int column)
+        {
+            AnimateVerticalTo(line * _lineHeight - (ViewportHeight - _lineHeight) / 2);
+
+            if (column >= 0)
+                SetHorizontalOffset(column * _charWidth - (ViewportWidth - _charWidth) / 2);
+        }
+
+        public void PageDown() => AnimateVerticalBy(ViewportHeight);
 
         public void PageLeft()
         {
@@ -212,10 +317,7 @@ namespace BigTextReader.App.View
             SetHorizontalOffset(HorizontalOffset + ViewportWidth);
         }
 
-        public void PageUp()
-        {
-            SetVerticalOffset(VerticalOffset - ViewportHeight);
-        }
+        public void PageUp() => AnimateVerticalBy(-ViewportHeight);
 
         public void SetHorizontalOffset(double offset)
         {
@@ -231,9 +333,13 @@ namespace BigTextReader.App.View
 
         public void SetVerticalOffset(double offset)
         {
+            StopScrollAnimation();
+
             offset = Math.Max(0, Math.Min(offset, Math.Max(0, ExtentHeight - ViewportHeight)));
+            _targetOffsetY = offset;
+
             if (Math.Abs(offset - this._offset.Y) < 0.01) return;
-            
+
             this._offset.Y = offset;
             ScrollOwner?.InvalidateScrollInfo();
             InvalidateVisual();
@@ -273,9 +379,21 @@ namespace BigTextReader.App.View
             if (Source == null)
                 return;
 
+            var results = SearchResults;
+            var hits = results.InLineRange(start, visible);
+            int hitCursor = 0;
+
+            SearchHit? currentHit = CurrentSearchResult >= 0 && CurrentSearchResult < results.Count
+                ? results.Hits[CurrentSearchResult]
+                : null;
+
             for (int i = 0; i < visible && i + start < LineCount; i++)
             {
-                var text = Source.GetLine(start + i);
+                long lineNumber = start + i;
+
+                while (hitCursor < hits.Length && hits[hitCursor].Line < lineNumber) hitCursor++;
+
+                var text = Source.GetLine(lineNumber);
 
                 int firstChar = (int)(HorizontalOffset / _charWidth);
                 if (firstChar >= text.Length) continue;
@@ -284,6 +402,7 @@ namespace BigTextReader.App.View
                 int count = Math.Min((int)(ViewportWidth / _charWidth) + 2, text.Length - firstChar);
                 double x = firstChar * _charWidth - HorizontalOffset;
                 double y = i * _lineHeight - firstLineOffset;
+                var origin = new Point(x, y);
 
                 FormattedText line = new(
                     text.Substring(firstChar, count),
@@ -297,7 +416,26 @@ namespace BigTextReader.App.View
                     Trimming = TextTrimming.None,
                     MaxLineCount = 1,
                 };
-                ctx.DrawText(line, new Point(x, y));
+
+                for (int h = hitCursor; h < hits.Length && hits[h].Line == lineNumber; h++)
+                {
+                    var hit = hits[h];
+
+                    if (!hit.HasColumn) continue;
+
+                    int highlightStart = Math.Max(0, hit.Column - firstChar);
+                    int highlightEnd = Math.Min(count, hit.Column - firstChar + results.Pattern.Length);
+                    if (highlightEnd <= highlightStart) continue;
+
+                    var geometry = line.BuildHighlightGeometry(
+                        origin, highlightStart, highlightEnd - highlightStart);
+                    if (geometry is null) continue;
+
+                    bool isCurrent = currentHit == hit;
+                    ctx.DrawGeometry(isCurrent ? _currentMatchBrush : _matchBrush, null, geometry);
+                }
+
+                ctx.DrawText(line, origin);
             }
         }
 
@@ -306,9 +444,14 @@ namespace BigTextReader.App.View
             var textView = (TextView)d;
             textView._offset.Y = 0;
             textView._offset.X = 0;
+            textView._targetOffsetY = 0;
+            textView.StopScrollAnimation();
             textView.InvalidateMeasure();
             textView.InvalidateVisual();
             textView.ScrollOwner?.InvalidateScrollInfo();
+
+            if (e.NewValue is not null)
+                textView.Dispatcher.BeginInvoke(DispatcherPriority.Input, () => textView.Focus());
         }
 
         private static void OnScrollInfoChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -317,5 +460,8 @@ namespace BigTextReader.App.View
             textView.InvalidateVisual();
             textView.ScrollOwner?.InvalidateScrollInfo();
         }
+
+        private static void OnHighlightChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) =>
+            ((TextView)d).InvalidateVisual();
     }
 }

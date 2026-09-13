@@ -2,6 +2,7 @@
 using System.Windows.Input;
 using BigTextReader.App.ViewModel;
 using BigTextReader.App.View.Dialogs;
+using BigTextReader.Core.Search;
 using Microsoft.Win32;
 
 namespace BigTextReader.App
@@ -15,6 +16,8 @@ namespace BigTextReader.App
             InitializeComponent();
             _vm = new();
             DataContext = _vm;
+
+            _vm.ScrollToHitRequested += OnScrollToHitRequested;
 
             Closed += (_, _) => _vm.Dispose();
         }
@@ -41,7 +44,7 @@ namespace BigTextReader.App
 
         private async void OnSaveFile(object sender, ExecutedRoutedEventArgs e)
         {
-            var dialog = new SaveFileDialog();
+            var dialog = new SaveFileDialog() { Filter = "All files (*.*)|*.*" };
             if (dialog.ShowDialog(this) == true)
                 await _vm.SaveFileCommandAsync(dialog.FileName);
         }
@@ -59,14 +62,14 @@ namespace BigTextReader.App
             TextView.Focus();
         }
 
-        // TODO: advance the current hit and ask the view to scroll to it.
-        private void OnFindNext(object sender, ExecutedRoutedEventArgs e)
-        {
-        }
+        private void OnFindNext(object sender, ExecutedRoutedEventArgs e) => _vm.GoToNextHit();
 
-        // TODO: step the current hit backwards and ask the view to scroll to it.
-        private void OnFindPrevious(object sender, ExecutedRoutedEventArgs e)
+        private void OnFindPrevious(object sender, ExecutedRoutedEventArgs e) => _vm.GoToPreviousHit();
+
+        private void OnScrollToHitRequested(object? sender, SearchHit hit)
         {
+            TextView.ScrollToLine(hit.Line, hit.Column);
+            TextView.Focus();
         }
 
         private void OnCanRun(object sender, CanExecuteRoutedEventArgs e) => e.CanExecute = true;

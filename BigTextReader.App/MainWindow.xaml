@@ -34,7 +34,12 @@
             CanContentScroll="True"
             HorizontalScrollBarVisibility="Auto"
             VerticalScrollBarVisibility="Visible">
-            <view:TextView x:Name="TextView" Source="{Binding Source}" LineCount="{Binding LineCount}" MaxLineBytes="{Binding MaxLineBytes}" />
+            <view:TextView x:Name="TextView"
+                           Source="{Binding Source}"
+                           LineCount="{Binding LineCount}"
+                           MaxLineBytes="{Binding MaxLineBytes}"
+                           SearchResults="{Binding SearchResults}"
+                           CurrentSearchResult="{Binding CurrentSearchResult}" />
         </ScrollViewer>
         <userControls:StatusBar Grid.Row="3" />
     </Grid>
