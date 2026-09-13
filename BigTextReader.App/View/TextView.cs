@@ -188,6 +188,15 @@ namespace BigTextReader.App.View
             SetVerticalOffset(VerticalOffset - WheelSize);
         }
 
+        public void ScrollToLine(long line, long column) 
+        {
+            var vertical = line * _lineHeight + ViewportHeight / 2;
+            var horizontal = column * _charWidth + ViewportWidth / 2;
+
+            SetVerticalOffset(vertical);
+            SetHorizontalOffset(horizontal);
+        }
+
         public void PageDown()
         {
             SetVerticalOffset(VerticalOffset + ViewportHeight);

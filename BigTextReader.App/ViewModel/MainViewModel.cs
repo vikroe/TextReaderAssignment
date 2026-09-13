@@ -2,9 +2,11 @@
 using System.IO;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
 using System.Windows.Input;
 using BigTextReader.Core.Indexing;
 using BigTextReader.Core.Loading;
+using BigTextReader.Core.Search;
 using BigTextReader.Core.Sources;
 
 namespace BigTextReader.App.ViewModel
@@ -27,6 +29,10 @@ namespace BigTextReader.App.ViewModel
             LineCount = next?.LineCount ?? 0;
             MaxLineBytes = next?.MaxLineBytes ?? 0;
             StatusText = "";
+            SearchResults = SearchResults.Empty;
+            _resultsPattern = "";
+            CurrentSearchResult = -1;
+            CommandManager.InvalidateRequerySuggested();
             old?.Dispose();
         }
 
@@ -69,7 +75,7 @@ namespace BigTextReader.App.ViewModel
 
         private void SetBusy(bool value)
         {
-            SetField(ref _busy, value);
+            SetField(ref _busy, value, nameof(Busy));
             CommandManager.InvalidateRequerySuggested();
         }
 
@@ -80,26 +86,58 @@ namespace BigTextReader.App.ViewModel
             private set => SetField(ref _statusText, value);
         }
 
-        public void Dispose()
+        private SearchResults _searchResults = SearchResults.Empty;
+        public SearchResults SearchResults
         {
-            Source?.Dispose();
-            _tmpStore.Dispose();
-            _cts?.Dispose();
+            get => _searchResults;
+            private set
+            {
+                if (!SetField(ref _searchResults, value)) return;
+                OnPropertyChanged(nameof(SearchResultsCount));
+                OnPropertyChanged(nameof(SearchStatus));
+            }
         }
 
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        private void OnPropertyChanged([CallerMemberName] string? name = null)
+        private int _currentSearchResult = -1;
+        public int CurrentSearchResult
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+            get => _currentSearchResult;
+            private set
+            {
+                if (!SetField(ref _currentSearchResult, value)) return;
+                OnPropertyChanged(nameof(SearchStatus));
+            }
         }
+        public int SearchResultsCount => _searchResults.Count;
 
-        private bool SetField<T>(ref T field, T value, [CallerMemberName] string? name = null)
+        private string _searchText = "";
+        public string SearchText
         {
-            if (EqualityComparer<T>.Default.Equals(field, value)) return false;
-            field = value;
-            OnPropertyChanged(name);
-            return true;
+            get => _searchText;
+            set
+            {
+                if (!SetField(ref _searchText, value)) return;
+                OnPropertyChanged(nameof(SearchStatus));
+            }
+        }
+        private string _resultsPattern = "";
+
+        public string SearchStatus
+        {
+            get
+            {
+                if (_resultsPattern.Length == 0) return "";
+                if (_searchText != _resultsPattern) return "";
+                if (_searchResults.IsEmpty) return "No results";
+
+                string total = _searchResults.Capped
+                    ? $"{_searchResults.Count:N0}+"
+                    : $"{_searchResults.Count:N0}";
+
+                return _currentSearchResult < 0
+                    ? $"{total} matches"
+                    : $"{_currentSearchResult + 1:N0} of {total}";
+            }
         }
 
         private async Task OpenFileAsync(string fileName, long generation, CancellationToken ct)
@@ -148,87 +186,107 @@ namespace BigTextReader.App.ViewModel
                 StatusText = status;
         }
 
-        public async Task OpenFileCommandAsync(string fileName)
-        {
-            _cts?.Cancel(); _cts?.Dispose(); _cts = new(); var ct = _cts.Token;
-            Busy = true;
-            var generation = ++_generation;
+        public Task OpenFileCommandAsync(string fileName) =>
+            RunAsync("Indexing...", async (generation, ct) =>
+                await OpenFileAsync(fileName, generation, ct));
 
-            try
+        public Task OpenUrlCommandAsync(Uri uri) =>
+            RunAsync("Downloading...", async (generation, ct) =>
             {
-                await OpenFileAsync(fileName, generation, ct);
-                UpdateStatus("", generation);
-            }
-            catch (OperationCanceledException) { UpdateStatus("", generation); }
-            catch (NotSupportedException ex) { UpdateStatus(ex.Message, generation); }
-            catch (IOException) { UpdateStatus("File is already in use", generation);  }
-            finally { if (generation == _generation) Busy = false; }
-        }
-
-        public async Task OpenUrlCommandAsync(Uri uri)
-        {
-            _cts?.Cancel(); _cts?.Dispose(); _cts = new(); var ct = _cts.Token;
-            Busy = true;
-
-            var generation = ++_generation;
-            var progress = TransferHandler(generation);
-            BeginPhase("Downloading...", generation);
-
-            try
-            {
+                var progress = TransferHandler(generation);
                 string target = _tmpStore.NewFile(".html");
                 await UrlDownloader.DownloadAsync(uri, target, progress, ct);
                 await OpenFileAsync(target, generation, ct);
-                UpdateStatus("", generation);
-            } 
-            catch (OperationCanceledException) { UpdateStatus("", generation); }
-            catch (HttpRequestException ex) { UpdateStatus(ex.Message, generation); }
-            catch (IOException ex) { UpdateStatus(ex.Message, generation); }
-            catch (UnauthorizedAccessException) { UpdateStatus("No permission to write the temp file.", generation); }
-            finally { if (generation == _generation) Busy = false; }
-        }
+            });
 
-        public async Task SaveFileCommandAsync(string path)
-        {
-            _cts?.Cancel(); _cts?.Dispose(); _cts = new(); var ct = _cts.Token;
-            Busy = true;
-
-            var generation = ++_generation;
-            var progress = TransferHandler(generation);
-            BeginPhase("Saving...", generation);
-
-            try
+        public Task SaveFileCommandAsync(string path) =>
+            RunAsync("Saving...", async (generation, ct) =>
             {
+                var progress = TransferHandler(generation);
                 await FileSaver.SaveFileAsync(Source!, path, progress, ct);
-                UpdateStatus("", generation);
-            }
-            catch (NotSupportedException ex) { UpdateStatus(ex.Message, generation); }
-            catch (IOException ex) { UpdateStatus(ex.Message, generation); }
-            catch (UnauthorizedAccessException) { UpdateStatus("Unauthorized access to target file.", generation); }
-            catch (OperationCanceledException) { UpdateStatus("", generation); }
-            finally { if (generation == _generation) Busy = false; }
-        }
+            });
 
-        public async Task GenerateRandomTextCommandAsync(int lineCount, bool lineNumbers)
-        {
-            _cts?.Cancel(); _cts?.Dispose(); _cts = new(); var ct = _cts.Token;
-            Busy = true;
-
-            var generation = ++_generation;
-            var progress = TransferHandler(generation);
-            BeginPhase("Generating...", generation);
-
-            try
+        public Task GenerateRandomTextCommandAsync(int lineCount, bool lineNumbers) =>
+            RunAsync("Generating...", async (generation, ct) =>
             {
+                var progress = TransferHandler(generation);
                 string target = _tmpStore.NewFile(".txt");
                 await RandomTextGenerator.GenerateAsync(target, lineCount, lineNumbers, progress, ct);
                 await OpenFileAsync(target, generation, ct);
+            });
+
+        private IProgress<SearchingProgress> SearchHandler(long generation) =>
+            new Progress<SearchingProgress>(p =>
+            {
+                if (generation != _generation) return;
+                StatusText = p.Phase == SearchPhase.Scanning ? "Scanning..." : "Indexing results...";
+                Progress = p.Fraction;
+            });
+
+        public Task SearchPatternCommandAsync() =>
+            RunAsync("Searching...", async (generation, ct) =>
+            {
+                var progress = SearchHandler(generation);
+                var pattern = SearchText;
+                var results = await Source!.SearchAsync(pattern, progress, ct);
+
+                if (generation != _generation) return;
+                SearchResults = results;
+                _resultsPattern = pattern;
+
+                CurrentSearchResult = -1;
+                OnPropertyChanged(nameof(SearchStatus));
+            });
+        
+        private static string? Describe(Exception ex) => ex switch
+        {
+            OperationCanceledException => "",
+            NotSupportedException or HttpRequestException or IOException => ex.Message,
+            UnauthorizedAccessException => "No permission to access that file.",
+            _ => null,
+        };
+
+        private async Task RunAsync(string phase, Func<long, CancellationToken, Task> work)
+        {
+            _cts?.Cancel(); _cts?.Dispose(); _cts = new();
+            var ct = _cts.Token;
+            var generation = ++_generation;
+
+            Busy = true;
+            BeginPhase(phase, generation);
+
+            try
+            {
+                await work(generation, ct);
                 UpdateStatus("", generation);
             }
-            catch (OperationCanceledException) { UpdateStatus("", generation); }
-            catch (IOException ex) { UpdateStatus(ex.Message, generation); }
-            catch (UnauthorizedAccessException) { UpdateStatus("No permission to write the temp file.", generation); }
+            catch (Exception ex) when (Describe(ex) is not null)
+            {
+                UpdateStatus(Describe(ex)!, generation);
+            }
             finally { if (generation == _generation) Busy = false; }
+        }
+
+        public void Dispose()
+        {
+            Source?.Dispose();
+            _tmpStore.Dispose();
+            _cts?.Dispose();
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        private void OnPropertyChanged([CallerMemberName] string? name = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        }
+
+        private bool SetField<T>(ref T field, T value, [CallerMemberName] string? name = null)
+        {
+            if (EqualityComparer<T>.Default.Equals(field, value)) return false;
+            field = value;
+            OnPropertyChanged(name);
+            return true;
         }
     }
 }

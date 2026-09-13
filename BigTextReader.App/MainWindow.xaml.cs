@@ -46,7 +46,34 @@ namespace BigTextReader.App
                 await _vm.SaveFileCommandAsync(dialog.FileName);
         }
 
+        private void OnFind(object sender, ExecutedRoutedEventArgs e) => SearchBar.ShowAndFocus();
+
+        private async void OnSearch(object sender, ExecutedRoutedEventArgs e)
+        {
+            await _vm.SearchPatternCommandAsync();
+        }
+
+        private void OnSearchBarCloseRequested(object? sender, EventArgs e)
+        {
+            SearchBar.HideBar();
+            TextView.Focus();
+        }
+
+        // TODO: advance the current hit and ask the view to scroll to it.
+        private void OnFindNext(object sender, ExecutedRoutedEventArgs e)
+        {
+        }
+
+        // TODO: step the current hit backwards and ask the view to scroll to it.
+        private void OnFindPrevious(object sender, ExecutedRoutedEventArgs e)
+        {
+        }
+
         private void OnCanRun(object sender, CanExecuteRoutedEventArgs e) => e.CanExecute = true;
         private void OnCanSave(object sender, CanExecuteRoutedEventArgs e) => e.CanExecute = !_vm.Busy && _vm.Source is not null;
+        private void OnCanFind(object sender, CanExecuteRoutedEventArgs e) => e.CanExecute = _vm.Source is not null;
+        private void OnCanSearch(object sender, CanExecuteRoutedEventArgs e) =>
+            e.CanExecute = !_vm.Busy && _vm.Source is not null && _vm.SearchText.Length > 0;
+        private void OnCanNavigateHits(object sender, CanExecuteRoutedEventArgs e) => e.CanExecute = _vm.SearchResultsCount > 0;
     }
 }

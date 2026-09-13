@@ -10,26 +10,32 @@
         Title="MainWindow" Height="450" Width="800">
     <Window.CommandBindings>
         <CommandBinding Command="ApplicationCommands.Open" Executed="OnOpenFile" CanExecute="OnCanRun" />
-        <CommandBinding Command="ApplicationCommands.Find" Executed="OnFind" CanExecute="OnCanFind" />
         <CommandBinding Command="{x:Static view:Commands.OpenUrl}" Executed="OnOpenUrl" CanExecute="OnCanRun" />
         <CommandBinding Command="{x:Static view:Commands.GenerateRandomText}" Executed="OnGenerateText" CanExecute="OnCanRun" />
         <CommandBinding Command="ApplicationCommands.Save" Executed="OnSaveFile" CanExecute="OnCanSave" />
+        <CommandBinding Command="ApplicationCommands.Find" Executed="OnFind" CanExecute="OnCanFind" />
+        <CommandBinding Command="{x:Static view:Commands.Search}" Executed="OnSearch" CanExecute="OnCanSearch" />
+        <CommandBinding Command="{x:Static view:Commands.FindNext}" Executed="OnFindNext" CanExecute="OnCanNavigateHits" />
+        <CommandBinding Command="{x:Static view:Commands.FindPrevious}" Executed="OnFindPrevious" CanExecute="OnCanNavigateHits" />
     </Window.CommandBindings>
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="auto" />
             <RowDefinition Height="auto" />
             <RowDefinition />
             <RowDefinition Height="auto" />
         </Grid.RowDefinitions>
 
         <userControls:MenuBar x:Name="MenuBar" />
+        <userControls:SearchBar Grid.Row="1" x:Name="SearchBar"
+                                Visibility="Collapsed" CloseRequested="OnSearchBarCloseRequested" />
         <ScrollViewer 
-            Grid.Row="1"
+            Grid.Row="2"
             CanContentScroll="True"
             HorizontalScrollBarVisibility="Auto"
             VerticalScrollBarVisibility="Visible">
-            <view:TextView Source="{Binding Source}" LineCount="{Binding LineCount}" MaxLineBytes="{Binding MaxLineBytes}" />
+            <view:TextView x:Name="TextView" Source="{Binding Source}" LineCount="{Binding LineCount}" MaxLineBytes="{Binding MaxLineBytes}" />
         </ScrollViewer>
-        <userControls:StatusBar Grid.Row="2" />
+        <userControls:StatusBar Grid.Row="3" />
     </Grid>
 </Window>
